@@ -142,8 +142,8 @@ public class LoadingView extends View {
 
         float[] waveY = new float[endX];
 
+        //绘制背后颜色较浅部分，有3D效果
         wavePaint.setColor(addAlpha(Color.BLACK, 0.3f));
-
         for (int beginX = 0; beginX < endX; beginX++) {
             double wx = beginX * defaultAngularFrequency;
             float beginY = (float) (waterLevel + defaultAmplitude * Math.sin(wx));
@@ -151,9 +151,11 @@ public class LoadingView extends View {
             waveY[beginX] = beginY;
         }
 
+        //绘制前面颜色较深部分
         wavePaint.setColor(Color.BLACK);
         final int wave2Shift = (int) (waveLength / 4);
         for (int beginX = 0; beginX < endX; beginX++) {
+            //相差四分之一个周期
             canvas.drawLine(beginX, waveY[(beginX + wave2Shift) % endX], beginX, endY, wavePaint);
         }
 

@@ -157,6 +157,7 @@ public class LoadingView extends View {
             canvas.drawLine(beginX, waveY[(beginX + wave2Shift) % endX], beginX, endY, wavePaint);
         }
 
+        //x轴复制，y轴拉伸，这里拉伸是指将最后一个像素一直复制下去，和常见的图片拉伸的意思不太一样
         waveShader = new BitmapShader(bitmap, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP);
         waterPaint.setShader(waveShader);
     }

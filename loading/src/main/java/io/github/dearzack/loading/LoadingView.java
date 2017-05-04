@@ -1,5 +1,8 @@
 package io.github.dearzack.loading;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
@@ -12,6 +15,7 @@ import android.graphics.Path;
 import android.graphics.Shader;
 import android.util.AttributeSet;
 import android.view.View;
+import android.view.animation.LinearInterpolator;
 
 /**
  * Created by Zack on 2017/5/2.
@@ -30,8 +34,11 @@ public class LoadingView extends View {
     private Path waterPath;
     private Matrix matrix;
     private BitmapShader waveShader;
+    private float waveShiftRatio;
 
     private float waterLevel;//水位高度
+    private ObjectAnimator waveShiftAnimator;
+    private AnimatorSet animatorSet;
 
     private int waterPresent = 40;
 
@@ -51,6 +58,7 @@ public class LoadingView extends View {
 
     private void init(AttributeSet attrs) {
         matrix = new Matrix();
+        initAnimation();
         TypedArray typedArray = mContext.obtainStyledAttributes(attrs, R.styleable.LoadingView);
         waterPresent = typedArray.getInteger(R.styleable.LoadingView_waterPresent, waterPresent);
         typedArray.recycle();
@@ -61,6 +69,16 @@ public class LoadingView extends View {
         waterPaint.setStyle(Paint.Style.FILL);
 
         waterPath = new Path();
+    }
+
+    private void initAnimation() {
+        waveShiftAnimator = ObjectAnimator.ofFloat(this, "waveShiftRatio", 0f, 1f);
+        waveShiftAnimator.setRepeatCount(ValueAnimator.INFINITE);
+        waveShiftAnimator.setDuration(1000);
+        waveShiftAnimator.setInterpolator(new LinearInterpolator());
+        animatorSet = new AnimatorSet();
+        animatorSet.play(waveShiftAnimator);
+        animatorSet.start();
     }
 
     @Override
@@ -85,11 +103,22 @@ public class LoadingView extends View {
             if (waterPaint.getShader() == null) {
                 waterPaint.setShader(waveShader);
             }
-            matrix.setScale(1, 0.5f, 1, waterLevel);
-            matrix.postTranslate(0, 0);
+            matrix.setScale(1, 0.5f, 0, waterLevel);
+            //set***、post***、pre***的区别在于
+            //set是直接设置Matrix的值，每次set一次，整个Matrix的数组都会变掉。
+            //post是后乘，当前的矩阵乘以参数给出的矩阵。可以连续多次使用post，来完成所需的整个变换。
+            //pre是前乘，参数给出的矩阵乘以当前的矩阵。所以操作是在当前矩阵的最前面发生的。
+//            matrix.setTranslate(waveShiftRatio * mWidth, 0);
+            matrix.postTranslate(waveShiftRatio * mWidth, 0);
             waveShader.setLocalMatrix(matrix);
             float radius = mWidth / 2f;
+//            canvas.drawText("贴", mWidth / 4, mHeight / 4 * 3, normalPaint);
             canvas.drawCircle(mWidth / 2f, mHeight / 2f, radius, waterPaint);
+            waterPaint.setTextSize(150);
+//            waterPaint.setShader(null);
+//            waterPaint.setColor(Color.WHITE);
+//            Log.e("ZHOUXIONG", waterPaint.getColor() + "");
+            canvas.drawText("贴", mWidth / 4, mHeight / 4 * 3, waterPaint);
         }
     }
 
@@ -170,5 +199,12 @@ public class LoadingView extends View {
         int green = Color.green(color);
         int blue = Color.blue(color);
         return Color.argb(alpha, red, green, blue);
+    }
+
+    public void setWaveShiftRatio(float waveShiftRatio) {
+        if (this.waveShiftRatio != waveShiftRatio) {
+            this.waveShiftRatio = waveShiftRatio;
+            invalidate();
+        }
     }
 }

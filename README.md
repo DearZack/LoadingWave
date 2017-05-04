@@ -4,5 +4,3 @@
 
 <img src="./screenShot/1.png">
 
-
-<img src="./screenShot/1.gif">

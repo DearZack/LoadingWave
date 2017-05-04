@@ -11,8 +11,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.graphics.Path;
 import android.graphics.Shader;
+import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.animation.LinearInterpolator;
@@ -30,17 +30,17 @@ public class LoadingView extends View {
 
     private int mWidth, mHeight;
     private Context mContext;
-    private Paint waterPaint;
-    private Path waterPath;
+    private Paint waterPaint, waterTextPaint, normaTextPaint;
     private Matrix matrix;
-    private BitmapShader waveShader;
+    private BitmapShader waveShader, waveTextShader;
     private float waveShiftRatio;
 
     private float waterLevel;//水位高度
     private ObjectAnimator waveShiftAnimator;
     private AnimatorSet animatorSet;
 
-    private int waterPresent = 40;
+    private String waterText;
+    private int waterColor, textColor;
 
     public LoadingView(Context context) {
         this(context, null);
@@ -60,15 +60,31 @@ public class LoadingView extends View {
         matrix = new Matrix();
         initAnimation();
         TypedArray typedArray = mContext.obtainStyledAttributes(attrs, R.styleable.LoadingView);
-        waterPresent = typedArray.getInteger(R.styleable.LoadingView_waterPresent, waterPresent);
+        waterText = typedArray.getString(R.styleable.LoadingView_waterText);
+        waterColor = typedArray.getColor(R.styleable.LoadingView_waterColor, Color.parseColor("#3bacfc"));
+        textColor =typedArray.getColor(R.styleable.LoadingView_textColor, Color.WHITE);
         typedArray.recycle();
 
+        if (TextUtils.isEmpty(waterText)) {
+            waterText = "贴";
+        }
+
+        if (waterText.length() > 1) {
+            waterText = waterText.substring(0, 1);
+        }
+
         waterPaint = new Paint();
-        waterPaint.setColor(Color.BLUE);
         waterPaint.setAntiAlias(true);
         waterPaint.setStyle(Paint.Style.FILL);
 
-        waterPath = new Path();
+        waterTextPaint = new Paint();
+        waterTextPaint.setAntiAlias(true);
+        waterTextPaint.setStyle(Paint.Style.FILL);
+
+        normaTextPaint = new Paint();
+        normaTextPaint.setColor(waterColor);
+        normaTextPaint.setAntiAlias(true);
+        normaTextPaint.setStyle(Paint.Style.FILL);
     }
 
     private void initAnimation() {
@@ -111,14 +127,11 @@ public class LoadingView extends View {
 //            matrix.setTranslate(waveShiftRatio * mWidth, 0);
             matrix.postTranslate(waveShiftRatio * mWidth, 0);
             waveShader.setLocalMatrix(matrix);
+            waveTextShader.setLocalMatrix(matrix);
             float radius = mWidth / 2f;
-//            canvas.drawText("贴", mWidth / 4, mHeight / 4 * 3, normalPaint);
+            canvas.drawText(waterText, mWidth / 4, mHeight / 4 * 3, normaTextPaint);
             canvas.drawCircle(mWidth / 2f, mHeight / 2f, radius, waterPaint);
-            waterPaint.setTextSize(150);
-//            waterPaint.setShader(null);
-//            waterPaint.setColor(Color.WHITE);
-//            Log.e("ZHOUXIONG", waterPaint.getColor() + "");
-            canvas.drawText("贴", mWidth / 4, mHeight / 4 * 3, waterPaint);
+            canvas.drawText(waterText, mWidth / 4, mHeight / 4 * 3, waterTextPaint);
         }
     }
 
@@ -142,9 +155,10 @@ public class LoadingView extends View {
     @Override
     public void onWindowFocusChanged(boolean hasWindowFocus) {
         super.onWindowFocusChanged(hasWindowFocus);
-//        waterPath.moveTo(0, (mHeight * (100 - waterPresent)) / 100);
-//        waterPath.arcTo(new RectF(0, 0, mWidth, mHeight), 0, 180, true);
-//        waterPath.close();
+        //这里才可以拿到width和height的值
+        waterTextPaint.setTextSize(mWidth / 2);
+        normaTextPaint.setTextSize(mWidth / 2);
+
     }
 
     @Override
@@ -161,10 +175,16 @@ public class LoadingView extends View {
 
         Bitmap bitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
+        Bitmap bitmapText = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
+        Canvas canvasText = new Canvas(bitmapText);
 
         Paint wavePaint = new Paint();
         wavePaint.setStrokeWidth(2);
         wavePaint.setAntiAlias(true);
+        Paint wavePaintText = new Paint();
+        wavePaint.setStrokeWidth(2);
+        wavePaint.setAntiAlias(true);
+        wavePaintText.setColor(textColor);
 
         final int endX = mWidth + 1;
         final int endY = mHeight + 1;
@@ -172,21 +192,26 @@ public class LoadingView extends View {
         float[] waveY = new float[endX];
 
         //绘制背后颜色较浅部分，有3D效果
-        wavePaint.setColor(addAlpha(Color.BLACK, 0.3f));
+        wavePaint.setColor(addAlpha(waterColor, 0.3f));
         for (int beginX = 0; beginX < endX; beginX++) {
             double wx = beginX * defaultAngularFrequency;
             float beginY = (float) (waterLevel + defaultAmplitude * Math.sin(wx));
             canvas.drawLine(beginX, beginY, beginX, endY, wavePaint);
+            canvasText.drawLine(beginX, beginY, beginX, endY, wavePaintText);
             waveY[beginX] = beginY;
         }
 
         //绘制前面颜色较深部分
-        wavePaint.setColor(Color.BLACK);
+        wavePaint.setColor(waterColor);
         final int wave2Shift = (int) (waveLength / 4);
         for (int beginX = 0; beginX < endX; beginX++) {
             //相差四分之一个周期
             canvas.drawLine(beginX, waveY[(beginX + wave2Shift) % endX], beginX, endY, wavePaint);
+            canvasText.drawLine(beginX, waveY[(beginX + wave2Shift) % endX], beginX, endY, wavePaintText);
         }
+
+        waveTextShader = new BitmapShader(bitmapText, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP);
+        waterTextPaint.setShader(waveTextShader);
 
         //x轴复制，y轴拉伸，这里拉伸是指将最后一个像素一直复制下去，和常见的图片拉伸的意思不太一样
         waveShader = new BitmapShader(bitmap, Shader.TileMode.REPEAT, Shader.TileMode.CLAMP);

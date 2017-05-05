@@ -4,5 +4,6 @@
         <attr name="waterText" format="string"/>
         <attr name="waterColor" format="color"/>
         <attr name="textColor" format="color"/>
+        <attr name="waterPercent" format="float"/>
     </declare-styleable>
 </resources>

@@ -11,6 +11,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.Shader;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -36,11 +37,13 @@ public class LoadingView extends View {
     private float waveShiftRatio;
 
     private float waterLevel;//水位高度
+    private int textDrawX, textDrawY;
     private ObjectAnimator waveShiftAnimator;
     private AnimatorSet animatorSet;
 
     private String waterText;
     private int waterColor, textColor;
+    private float waterPercent;
 
     public LoadingView(Context context) {
         this(context, null);
@@ -62,7 +65,8 @@ public class LoadingView extends View {
         TypedArray typedArray = mContext.obtainStyledAttributes(attrs, R.styleable.LoadingView);
         waterText = typedArray.getString(R.styleable.LoadingView_waterText);
         waterColor = typedArray.getColor(R.styleable.LoadingView_waterColor, Color.parseColor("#3bacfc"));
-        textColor =typedArray.getColor(R.styleable.LoadingView_textColor, Color.WHITE);
+        textColor = typedArray.getColor(R.styleable.LoadingView_textColor, Color.WHITE);
+        waterPercent = typedArray.getFloat(R.styleable.LoadingView_waterPercent, 50.0f);
         typedArray.recycle();
 
         if (TextUtils.isEmpty(waterText)) {
@@ -71,6 +75,12 @@ public class LoadingView extends View {
 
         if (waterText.length() > 1) {
             waterText = waterText.substring(0, 1);
+        }
+
+        if (waterPercent > 100) {
+            waterPercent = 100;
+        } else if (waterPercent < 0) {
+            waterPercent = 0;
         }
 
         waterPaint = new Paint();
@@ -82,7 +92,6 @@ public class LoadingView extends View {
         waterTextPaint.setStyle(Paint.Style.FILL);
 
         normaTextPaint = new Paint();
-        normaTextPaint.setColor(waterColor);
         normaTextPaint.setAntiAlias(true);
         normaTextPaint.setStyle(Paint.Style.FILL);
     }
@@ -129,9 +138,9 @@ public class LoadingView extends View {
             waveShader.setLocalMatrix(matrix);
             waveTextShader.setLocalMatrix(matrix);
             float radius = mWidth / 2f;
-            canvas.drawText(waterText, mWidth / 4, mHeight / 4 * 3, normaTextPaint);
+            canvas.drawText(waterText, textDrawX, textDrawY, normaTextPaint);
             canvas.drawCircle(mWidth / 2f, mHeight / 2f, radius, waterPaint);
-            canvas.drawText(waterText, mWidth / 4, mHeight / 4 * 3, waterTextPaint);
+            canvas.drawText(waterText, textDrawX, textDrawY, waterTextPaint);
         }
     }
 
@@ -158,7 +167,12 @@ public class LoadingView extends View {
         //这里才可以拿到width和height的值
         waterTextPaint.setTextSize(mWidth / 2);
         normaTextPaint.setTextSize(mWidth / 2);
-
+        Rect rect = new Rect();
+        normaTextPaint.getTextBounds(waterText, 0, waterText.length(), rect);
+        int width = rect.width();//文字宽
+        int height = rect.height();//文字高
+        textDrawX = (mWidth - width) / 2;
+        textDrawY = (mHeight + height) / 2;
     }
 
     @Override
@@ -167,11 +181,23 @@ public class LoadingView extends View {
         setWaveShader();
     }
 
+    @Override
+    protected void onDetachedFromWindow() {
+        if (animatorSet != null) {
+            animatorSet.cancel();
+        }
+        super.onDetachedFromWindow();
+    }
+
     private void setWaveShader() {
-        double defaultAngularFrequency = 2.0f * Math.PI  / mWidth;
+        double defaultAngularFrequency = 2.0f * Math.PI / mWidth;
         float defaultAmplitude = mHeight * DEFAULT_AMPLITUDE_RATIO;
-        waterLevel = mHeight * DEFAULT_WATER_LEVEL_RATIO;
+        waterLevel = mHeight * (1 - waterPercent / 100);
         float waveLength = mWidth;
+
+        if (mWidth <= 0 || mHeight <= 0) {
+            return;
+        }
 
         Bitmap bitmap = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
@@ -182,9 +208,10 @@ public class LoadingView extends View {
         wavePaint.setStrokeWidth(2);
         wavePaint.setAntiAlias(true);
         Paint wavePaintText = new Paint();
-        wavePaint.setStrokeWidth(2);
-        wavePaint.setAntiAlias(true);
+        wavePaintText.setStrokeWidth(2);
+        wavePaintText.setAntiAlias(true);
         wavePaintText.setColor(textColor);
+        normaTextPaint.setColor(waterColor);
 
         final int endX = mWidth + 1;
         final int endY = mHeight + 1;
@@ -231,5 +258,32 @@ public class LoadingView extends View {
             this.waveShiftRatio = waveShiftRatio;
             invalidate();
         }
+    }
+
+    public int getWaterColor() {
+        return waterColor;
+    }
+
+    public void setWaterColor(int waterColor) {
+        this.waterColor = waterColor;
+        setWaveShader();
+    }
+
+    public int getTextColor() {
+        return textColor;
+    }
+
+    public void setTextColor(int textColor) {
+        this.textColor = textColor;
+        setWaveShader();
+    }
+
+    public float getWaterPercent() {
+        return waterPercent;
+    }
+
+    public void setWaterPercent(float waterPercent) {
+        this.waterPercent = waterPercent;
+        setWaveShader();
     }
 }

@@ -33,5 +33,7 @@ dependencies {
     compile 'com.android.support:appcompat-v7:25.0.0'
     testCompile 'junit:junit:4.12'
 //    compile project(':loading')
-    compile 'com.github.DearZack:LoadingWave:-SNAPSHOT'
+    compile 'com.github.DearZack:LoadingWave:-SNAPSHOT' , {
+        exclude group: 'com.android.support'
+    }
 }

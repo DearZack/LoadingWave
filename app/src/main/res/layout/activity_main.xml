@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_main"
     android:layout_width="match_parent"
@@ -12,5 +13,9 @@
 
     <io.github.dearzack.loading.LoadingView
         android:layout_width="100dp"
-        android:layout_height="100dp" />
+        android:layout_height="100dp"
+        app:textColor="#ffffff"
+        app:waterColor="#3bacfc"
+        app:waterPercent="50"
+        app:waterText="Z" />
 </RelativeLayout>

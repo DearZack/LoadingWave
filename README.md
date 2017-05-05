@@ -20,7 +20,7 @@ allprojects {
 ### Step 2. Add the dependency
 ```groovy
 dependencies {
-	        compile 'com.github.DearZack:LoadingWave:-SNAPSHOT'
+	        compile 'com.github.DearZack:LoadingWave:v1.0'
 	}
 ```
 
